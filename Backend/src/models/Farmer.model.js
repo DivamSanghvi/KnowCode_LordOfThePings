@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { string } from "three/tsl";
 
 const FarmerSchema = new mongoose.Schema({
   fullname: {
