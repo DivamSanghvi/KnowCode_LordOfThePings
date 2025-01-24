@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { string } from "three/tsl";
 
 const FarmerSchema = new mongoose.Schema({
   fullname: {
@@ -22,16 +23,15 @@ const FarmerSchema = new mongoose.Schema({
       message: (props) => `${props.value} is not a valid phone number!`,
     },
   },
+  password : {
+    type : String,
+    required: true,
+  },
   aadharCard: {
     type: String,
     required: true,
     unique: true,
-    validate: {
-      validator: function (v) {
-        return /^\d{12}$/.test(v); // Validates 12-digit Aadhaar numbers
-      },
-      message: (props) => `${props.value} is not a valid Aadhaar number!`,
-    },
+    
   },
   email: {
     type: String,
@@ -42,19 +42,14 @@ const FarmerSchema = new mongoose.Schema({
       message: (props) => `${props.value} is not a valid email address!`,
     },
   },
-  address: {
-    village: { type: String, required: true },
-    district: { type: String, required: true },
-    state: { type: String, required: true },
-    pincode: {
-      type: Number,
-      required: true,
-      validate: {
-        validator: function (v) {
-          return /^\d{6}$/.test(v); // Validates Indian pincodes
-        },
-        message: (props) => `${props.value} is not a valid pincode!`,
+  pincode: {
+    type: Number,
+    required: true,
+    validate: {
+      validator: function (v) {
+        return /^\d{6}$/.test(v); // Validates Indian pincodes
       },
+      message: (props) => `${props.value} is not a valid pincode!`,
     },
   },
   landDetails: {
@@ -67,15 +62,7 @@ const FarmerSchema = new mongoose.Schema({
     },
     soilType: {
       type: String,
-      enum: [
-        "Sandy",
-        "Clayey",
-        "Loamy",
-        "Silty",
-        "Peaty",
-        "Chalky",
-        "Saline",
-      ],
+      enum: ["Sandy", "Clayey", "Loamy", "Silty", "Peaty", "Chalky", "Saline"],
       required: true,
     },
   },
@@ -96,6 +83,12 @@ const FarmerSchema = new mongoose.Schema({
   climaticDetails: {
     averageRainfall: {
       type: Number, // in mm
+    },
+    humidity: {
+      type: Number
+    },
+    weather: {
+      type: String
     },
     temperatureRange: {
       min: Number, // in degrees Celsius

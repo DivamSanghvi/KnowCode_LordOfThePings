@@ -72,54 +72,60 @@ export const signup = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-    try {
+  try {
+      console.log(req.body);
       const { phoneNumber, password } = req.body;
-  
+
       // Find the farmer by phone number
-      const farmer = await Farmer.findOne({ phoneNumber });
+      const farmer = await Farmer.findOne({ phoneNumber: phoneNumber.toString() });
+
       if (!farmer) {
-        return res.status(404).json({ message: "Farmer not found." });
+          return res.status(404).json({ message: "Farmer not found." });
       }
-  
+
       // Compare the password
       const isPasswordValid = await bcrypt.compare(password, farmer.password);
       if (!isPasswordValid) {
-        return res.status(401).json({ message: "Invalid credentials." });
+          return res.status(401).json({ message: "Invalid credentials." });
       }
-  
+
       // Generate tokens
       const accessToken = jwt.sign(
-        { id: farmer._id, phoneNumber: farmer.phoneNumber },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
+          { id: farmer._id, phoneNumber: farmer.phoneNumber },
+          process.env.ACCESS_TOKEN_SECRET,
+          { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
       );
-  
+
       const refreshToken = jwt.sign(
-        { id: farmer._id, phoneNumber: farmer.phoneNumber },
-        process.env.REFRESH_TOKEN_SECRET,
-        { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+          { id: farmer._id, phoneNumber: farmer.phoneNumber },
+          process.env.REFRESH_TOKEN_SECRET,
+          { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
       );
-  
+
       // Store the tokens in cookies
       res.cookie("accessToken", accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 24 * 60 * 60 * 1000, // 1 day
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge: 24 * 60 * 60 * 1000, // 1 day
       });
-  
+
       res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 10 * 24 * 60 * 60 * 1000, // 10 days
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge: 10 * 24 * 60 * 60 * 1000, // 10 days
       });
-  
-      res.status(200).json({ message: "Logged in successfully!" });
-    } catch (error) {
+
+      // Remove sensitive data before sending response
+      const { password: _, ...farmerData } = farmer.toObject();
+
+      res.status(200).json({ message: "Logged in successfully!", farmer: farmerData });
+  } catch (error) {
       res.status(500).json({ message: "Error during login", error: error.message });
-    }
-  };
+  }
+};
+
 
 
   export const askGemini = async (req, res) => {
@@ -342,8 +348,7 @@ export const getCropLifeCycle = async (req, res) => {
 const API_KEY = 'fc32fda44f3ca783a9f051b2ef9b9877';
 const BASE_URL = 'http://api.openweathermap.org/data/2.5/weather';
 
-export const getWeatherByPincode = async (req, res) => {
-  const pincode = req.params.pincode;
+const getWeatherByPincode = async (pincode) => {
   const countryCode = 'IN'; // India
 
   // Construct the API URL
@@ -360,18 +365,14 @@ export const getWeatherByPincode = async (req, res) => {
       weather: weatherData.weather[0].description,
       humidity: weatherData.main.humidity,
       windSpeed: weatherData.wind.speed,
+      minTemp: weatherData.main.temp_min,
+      maxTemp: weatherData.main.temp_max
     };
 
-    res.json({
-      success: true,
-      data: weatherInfo,
-    });
+    return weatherInfo;
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch weather data.',
-    });
+    throw new Error('Failed to fetch weather data.');
   }
 };
 
@@ -507,6 +508,353 @@ export const productLinks = async (req, res) => {
   }
 };
 
+export const extractPincodeFromAadhar = async (req, res) => {
+  console.log(req.files); // Log the uploaded files for debugging
+
+  // Ensure an Aadhaar image is uploaded
+  const imageLocalPath = req.files?.aadhar && req.files.aadhar.length > 0
+      ? req.files.aadhar[0].path
+      : null;
+
+  if (!imageLocalPath) {
+      return res.status(400).json({ message: 'No Aadhaar card image uploaded' });
+  }
+
+  try {
+      // Read and convert the image to base64
+      const imageFile = await fs.readFile(imageLocalPath);
+      const imageBase64 = imageFile.toString("base64");
+
+      // Prepare the prompt for Gemini Vision API
+      const promptConfig = [
+          {
+              text: `Extract the pincode from this Aadhaar card image. 
+              The response should contain ONLY the 6-digit pincode and nothing else.`
+          },
+          {
+              inlineData: {
+                  mimeType: "image/jpeg", // Adjust based on the image type
+                  data: imageBase64,
+              },
+          },
+      ];
+
+      // Send the image to Gemini for OCR processing
+      const result = await geminiModelVision.generateContent({
+          contents: [{ role: "user", parts: promptConfig }],
+      });
+
+      // Get text response
+      const responseText = await result.response.text();
+
+      // Extract 6-digit pincode using regex
+      const pincodeMatch = responseText.match(/\b\d{6}\b/);
+      const pincode = pincodeMatch ? pincodeMatch[0] : null;
+
+      if (!pincode) {
+          return res.status(400).json({ success: false, message: 'Could not extract pincode from Aadhaar card' });
+      }
+
+      // Send extracted pincode
+      return res.json({ success: true, pincode });
+
+  } catch (error) {
+      console.error('Error extracting pincode:', error);
+      return res.status(500).json({
+          success: false,
+          message: 'Failed to extract pincode from Aadhaar card',
+      });
+  }
+};
 
 
-  
+export const farmerSignup = async (req, res) => {
+  try {
+    const {
+      email,
+      password, // New password field
+      "landDetails.landSize": landSize,
+      "landDetails.irrigationType": irrigationType,
+      "landDetails.soilType": soilType,
+      preferredCrops,
+      farmingExperience,
+      equipmentOwned,
+    } = req.body;
+
+    // Validate required fields
+    if (!email || !password || !soilType || !farmingExperience) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    // Check if Aadhaar card image is uploaded
+    const imageLocalPath = req.files?.photo && req.files.photo.length > 0
+      ? req.files.photo[0].path
+      : null;
+
+    if (!imageLocalPath) {
+      return res.status(400).json({ message: "Aadhaar card image is required for signup." });
+    }
+
+    // Read and convert image to base64
+    const imageFile = await fs.readFile(imageLocalPath);
+    const imageBase64 = imageFile.toString("base64");
+
+    // Prepare prompt for Gemini Vision
+    const promptConfig = [
+      {
+        text: `Extract the following details from the Aadhaar card image:
+        - First Name
+        - Last Name
+        - Phone Number (if available it will be below address)
+        - Aadhaar Card Number
+        - Pincode
+    
+        Return the extracted details in **only** a structured JSON format as shown below:
+        
+        {
+          "firstname": "<First Name>",
+          "lastname": "<Last Name>",
+          "phoneNumber": "<Phone Number or null if not present>",
+          "aadharCard": "<12-digit Aadhaar Number>",
+          "pincode": "<6-digit Pincode>"
+        }
+    
+        **Important:**
+        - Ensure **only** the JSON output is returned, with no additional text.
+        - If a field is missing, set its value to **null**.
+        - Extract only the relevant text from the Aadhaar card.
+        - Do **not** include any other information or explanations.`,
+      },
+      {
+        inlineData: {
+          mimeType: "image/jpeg", // Adjust based on the image type
+          data: imageBase64,
+        },
+      },
+    ];
+
+    // Send request to Gemini Vision for Aadhaar details extraction
+    const result = await geminiModelVision.generateContent({
+      contents: [{ role: "user", parts: promptConfig }],
+    });
+
+    const responseText = await result.response.text();
+    console.log("Raw Response from Gemini:", responseText);
+
+    let extractedDetails;
+    try {
+      // Extract JSON content using regex
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        extractedDetails = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error("No valid JSON found in Gemini response.");
+      }
+    } catch (error) {
+      return res.status(400).json({ message: "Failed to parse Aadhaar card details from Gemini response." });
+    }
+
+    const { firstname, lastname, phoneNumber, aadharCard, pincode } = extractedDetails;
+
+    if (!firstname || !lastname || !phoneNumber || !aadharCard || !pincode) {
+      return res.status(400).json({ message: "Incomplete Aadhaar card details extracted." });
+    }
+
+    // Get weather details based on extracted pincode
+    const weatherDetails = await getWeatherByPincode(pincode);
+    console.log(weatherDetails);
+
+    // Convert preferredCrops & equipmentOwned to arrays (handles comma-separated values)
+    const cropsArray = preferredCrops ? preferredCrops.split(",").map((item) => item.trim()) : [];
+    const equipmentArray = equipmentOwned ? equipmentOwned.split(",").map((item) => item.trim()) : [];
+
+    // Construct structured data
+    const landDetails = {
+      landSize: landSize ? Number(landSize) : null,
+      irrigationType,
+      soilType, // Required field
+    };
+
+    const climaticDetails = {
+      averageRainfall: 20, // Using temperature for averageRainfall (adjust based on your requirement)
+      weather: weatherDetails.weather,
+      humidity: weatherDetails.humidity,
+      temperatureRange: {
+        min: weatherDetails.minTemp, // You can adjust this as needed
+        max: weatherDetails.maxTemp, // Adjust based on requirements
+      },
+    };
+
+    // **Hash Password using bcrypt**
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create new Farmer record
+    const newFarmer = new Farmer({
+      fullname: { firstname, lastname },
+      phoneNumber,
+      aadharCard,
+      email,
+      password: hashedPassword, // Store hashed password
+      pincode, // Save extracted pincode
+      landDetails,
+      preferredCrops: cropsArray,
+      farmingExperience: Number(farmingExperience),
+      equipmentOwned: equipmentArray,
+      climaticDetails,
+    });
+
+    await newFarmer.save();
+
+    return res.status(201).json({ 
+      success: true, 
+      message: "Farmer registered successfully", 
+      farmer: {
+        id: newFarmer._id,
+        fullname: newFarmer.fullname,
+        email: newFarmer.email,
+        phoneNumber: newFarmer.phoneNumber,
+        pincode: newFarmer.pincode,
+        landDetails: newFarmer.landDetails,
+        preferredCrops: newFarmer.preferredCrops,
+        farmingExperience: newFarmer.farmingExperience,
+        equipmentOwned: newFarmer.equipmentOwned,
+        climaticDetails: newFarmer.climaticDetails,
+      } // Exclude password from response
+    });
+  } catch (error) {
+    console.error("Error during farmer signup:", error);
+    return res.status(500).json({ success: false, message: "Signup failed due to server error." });
+  }
+};
+
+
+const WEATHER_API_KEY = 'fc32fda44f3ca783a9f051b2ef9b9877';
+const WEATHER_BASE_URL = 'https://api.openweathermap.org/data/2.5/weather';
+const COUNTRY_CODE = 'IN';
+
+export const farmerSignup2 = async (req, res) => {
+  try {
+    console.log("Received Request Body:", req.body);
+
+    // Convert to plain object if necessary
+    const parsedBody = JSON.parse(JSON.stringify(req.body));
+
+    // Manually reconstruct nested objects (if keys are flattened)
+    const landDetails = {
+      landSize: parsedBody["landDetails.landSize"] || null,
+      irrigationType: parsedBody["landDetails.irrigationType"] || null,
+      soilType: parsedBody["landDetails.soilType"] || null,
+    };
+
+    const climaticDetails = {
+      averageRainfall: parsedBody["climaticDetails.averageRainfall"] || null,
+      temperatureRange: {
+        min: parsedBody["climaticDetails.temperatureRange.min"] || null,
+        max: parsedBody["climaticDetails.temperatureRange.max"] || null,
+      },
+    };
+
+    const {
+      firstname,
+      lastname,
+      phoneNumber,
+      aadharCard,
+      email,
+      preferredCrops,
+      farmingExperience,
+      equipmentOwned,
+    } = parsedBody;
+
+    if (!firstname || !lastname || !phoneNumber || !aadharCard || !landDetails.soilType || !farmingExperience) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    // Check for Aadhaar card image
+    const imageLocalPath = req.files?.photo?.[0]?.path || null;
+    if (!imageLocalPath) {
+      return res.status(400).json({ message: "Aadhaar card image is required for signup" });
+    }
+
+    // Read and convert image to base64
+    const imageFile = await fs.readFile(imageLocalPath);
+    const imageBase64 = imageFile.toString("base64");
+
+    // Extract pincode using Gemini Vision
+    const promptConfig = [
+      {
+          text: `Extract the pincode from this Aadhaar card image. 
+          The response should contain ONLY the 6-digit pincode and nothing else.`
+      },
+      {
+          inlineData: {
+              mimeType: "image/jpeg", // Adjust based on the image type
+              data: imageBase64,
+          },
+      },
+  ];
+
+    const result = await geminiModelVision.generateContent({
+      contents: [{ role: "user", parts: promptConfig }],
+    });
+
+    const responseText = await result.response.text();
+    const extractedPincode = responseText.match(/\d{6}/)?.[0]; // Extract first 6-digit number
+
+    if (!extractedPincode) {
+      return res.status(400).json({ message: "Failed to extract pincode from Aadhaar card." });
+    }
+
+    // Fetch weather details using OpenWeatherMap
+    let location = null, temperature = null, weatherCondition = null, humidity = null, windSpeed = null, minTemp = null, maxTemp = null;
+
+    try {
+      const weatherResponse = await axios.get(
+        `${WEATHER_BASE_URL}?zip=${extractedPincode},${COUNTRY_CODE}&appid=${WEATHER_API_KEY}&units=metric`
+      );
+      const weatherData = weatherResponse.data;
+      console.log(weatherData)
+
+      location = weatherData.name;
+      temperature = weatherData.main.temp;
+      weatherCondition = weatherData.weather[0].description;
+      humidity = weatherData.main.humidity;
+      windSpeed = weatherData.wind.speed;
+      minTemp = weatherData.main.temp_min;
+      maxTemp = weatherData.main.temp_max;
+    } catch (error) {
+      console.error("Failed to fetch weather data:", error.response?.data || error.message);
+    }
+
+    // Create and save farmer record
+    const newFarmer = new Farmer({
+      fullname: { firstname, lastname },
+      phoneNumber,
+      aadharCard,
+      email,
+      pincode: extractedPincode,
+      landDetails,
+      preferredCrops: preferredCrops ? preferredCrops.split(",").map(crop => crop.trim()) : [],
+      farmingExperience,
+      equipmentOwned: equipmentOwned ? equipmentOwned.split(",").map(equip => equip.trim()) : [],
+      climaticDetails: {
+        location,
+        averageRainfall: climaticDetails.averageRainfall,
+        humidity,
+        weather: weatherCondition,
+        windSpeed,
+        temperatureRange: {
+          min: minTemp,
+          max: maxTemp,
+        },
+      },
+    });
+
+    await newFarmer.save();
+
+    return res.status(201).json({ success: true, message: "Farmer registered successfully", farmer: newFarmer });
+  } catch (error) {
+    console.error("Error during farmer signup:", error);
+    return res.status(500).json({ success: false, message: "Signup failed due to server error" });
+  }
+};
