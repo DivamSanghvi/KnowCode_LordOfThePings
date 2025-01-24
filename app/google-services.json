@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "339331269726",
+    "project_id": "cropandfarmer",
+    "storage_bucket": "cropandfarmer.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:339331269726:android:da3d6718ec4c3c7af3e0cf",
+        "android_client_info": {
+          "package_name": "com.study.cropsproject"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRH8ZAmWxpxBnAeFFH-EGCJP01BD84XcE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

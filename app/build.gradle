@@ -1,0 +1,83 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.google.gms.google.services)
+}
+
+android {
+    namespace 'com.study.cropsproject'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.study.cropsproject"
+        minSdk 30
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    buildFeatures {
+        viewBinding true
+    }
+}
+
+dependencies {
+
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.activity
+    implementation libs.constraintlayout
+    implementation libs.benchmark.common
+    implementation libs.firebase.auth
+    implementation libs.annotation
+    implementation libs.lifecycle.livedata.ktx
+    implementation libs.lifecycle.viewmodel.ktx
+    implementation libs.firebase.database
+    implementation libs.firebase.firestore
+    implementation libs.vision.common
+    implementation libs.object.detection
+    implementation libs.object.detection.common
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
+    implementation libs.text.recognition
+    implementation libs.text.recognition
+    implementation(libs.generativeai)
+    implementation(libs.generativeai.v070)
+    implementation libs.image.labeling
+    implementation libs.play.services.mlkit.image.labeling
+    implementation 'com.google.mlkit:image-labeling:17.0.7'
+    implementation 'com.google.android.gms:play-services-mlkit-text-recognition:19.0.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.camera:camera-core:1.4.1'
+    implementation 'androidx.camera:camera-view:1.4.1'
+    implementation 'androidx.camera:camera-lifecycle:1.4.1'
+
+
+
+
+    implementation "androidx.camera:camera-camera2:1.4.1"
+    implementation "androidx.camera:camera-extensions:1.4.1"
+
+
+
+
+
+
+    // Required to use `ListenableFuture` from Guava Android for one-shot generation
+    implementation(libs.guava)
+
+    // Required to use `Publisher` from Reactive Streams for streaming operations
+    implementation(libs.reactive.streams)
+}

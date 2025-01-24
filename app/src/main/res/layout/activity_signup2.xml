@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    tools:context=".SignupA">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="32dp">
+
+            <ImageView
+                android:id="@+id/aadhaarImageView"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:scaleType="centerCrop"
+                android:layout_marginBottom="24dp"
+                android:background="@drawable/dashed_border"
+                android:contentDescription="Aadhaar Image" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/captureAadhaarButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Capture Aadhaar Card"
+                android:textColor="@color/white"
+                android:padding="12dp"
+                app:cornerRadius="8dp"
+                android:backgroundTint="@color/accent"
+                android:layout_marginBottom="24dp" />
+
+            <TextView
+                android:id="@+id/nameTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Name: "
+                android:textSize="18sp"
+                android:textColor="@color/primary_text"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:id="@+id/dobTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="DOB: "
+                android:textSize="18sp"
+                android:textColor="@color/primary_text"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:id="@+id/genderTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Gender: "
+                android:textSize="18sp"
+                android:textColor="@color/primary_text"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:id="@+id/aadhaarTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Aadhaar: "
+                android:textSize="18sp"
+                android:textColor="@color/primary_text"
+                android:layout_marginBottom="24dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/loginButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Login and Register"
+                android:textColor="@color/white"
+                android:padding="12dp"
+                app:cornerRadius="8dp"
+                android:backgroundTint="@color/primary" />
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
