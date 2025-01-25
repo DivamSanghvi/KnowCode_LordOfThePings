@@ -710,7 +710,6 @@ export const extractPincodeFromAadhar = async (req, res) => {
 export const farmerSignup = async (req, res) => {
   try {
     const {
-      email,
       password, // New password field
       "landDetails.landSize": landSize,
       "landDetails.irrigationType": irrigationType,
@@ -721,7 +720,7 @@ export const farmerSignup = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!email || !password || !soilType || !farmingExperience) {
+    if ( !password || !soilType || !farmingExperience) {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
@@ -833,7 +832,6 @@ export const farmerSignup = async (req, res) => {
       fullname: { firstname, lastname },
       phoneNumber,
       aadharCard,
-      email,
       password: hashedPassword, // Store hashed password
       pincode, // Save extracted pincode
       landDetails,
@@ -851,7 +849,7 @@ export const farmerSignup = async (req, res) => {
       farmer: {
         id: newFarmer._id,
         fullname: newFarmer.fullname,
-        email: newFarmer.email,
+        
         phoneNumber: newFarmer.phoneNumber,
         pincode: newFarmer.pincode,
         landDetails: newFarmer.landDetails,

@@ -32,15 +32,7 @@ const FarmerSchema = new mongoose.Schema({
     unique: true,
     
   },
-  email: {
-    type: String,
-    validate: {
-      validator: function (v) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-      },
-      message: (props) => `${props.value} is not a valid email address!`,
-    },
-  },
+
   pincode: {
     type: Number,
     required: true,
