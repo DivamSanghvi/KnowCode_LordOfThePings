@@ -1,9 +1,12 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Farmer from "../../models/Farmer.model.js";
+import Field from "../../models/Field.js";
 import axios from 'axios';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import fs from 'fs/promises'; 
+import { log } from "console";
+import mongoose from "mongoose";
 
 const gemini_api_key = process.env.GEMINI_API_KEY;
 const googleAI = new GoogleGenerativeAI(gemini_api_key);
@@ -345,7 +348,8 @@ export const getCropLifeCycle = async (req, res) => {
 
 
 
-const API_KEY = 'fc32fda44f3ca783a9f051b2ef9b9877';
+// const API_KEY = 'fc32fda44f3ca783a9f051b2ef9b9877';
+const API_KEY = 'b8c863bb8e3ff5a9c148db1f34c78e66';
 const BASE_URL = 'http://api.openweathermap.org/data/2.5/weather';
 
 const getWeatherByPincode = async (pincode) => {
@@ -508,6 +512,141 @@ export const productLinks = async (req, res) => {
   }
 };
 
+export const getLocation = async (req,res) => {
+  const {latitude,longitude,area, path, crop, field_name, farmer_id} = req.body;
+  if(!latitude || !longitude || !area){
+    return res.status(400).json({message: "Error receiving latitude and longitude"});
+  }
+
+  // const url = `${BASE_URL}?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric`;
+  
+  // const url = `https://api.openweathermap.org/data/2.5/weather?lat=55.86515&lon=-4.25763&appid=${API_KEY}`
+  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}`
+
+
+  try {
+    const response = await axios.get(url);
+    const weatherData = response.data;
+
+    // Structure the response
+    const weatherInfo = {
+      location: weatherData.name,
+      temperature: weatherData.main.temp,
+      weather: weatherData.weather[0].description,
+      humidity: weatherData.main.humidity,
+      windSpeed: weatherData.wind.speed,
+    };
+
+    res.status(200).json({
+      success: true,
+      data: weatherData,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch weather data.',
+    });
+  }
+
+
+  try {
+    const newField = new Field({
+      user_id: farmer_id, 
+      field_name,
+      crop,
+      path,
+      area,
+    });
+
+    const savedField = await newField.save();
+
+    console.log('Field saved:', savedField);
+  } catch (error) {
+    console.error('Error saving field:', error);
+  }
+
+  console.log(latitude,longitude,area,field_name,crop,path,farmer_id);
+  console.log("hello");
+  
+  // return res.status(200).json({message:"good job"});
+}
+
+export const getGraph = async (req, res) => {
+
+  const {latitude,longitude} = req.body;
+
+  if(!latitude || !longitude){
+    return res.status(400).json({message: "Error receiving latitude and longitude"});
+  }
+  const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${API_KEY}`
+
+  try {
+    const response = await axios.get(url);
+    const weatherData = response.data;
+
+      res.status(200).json({
+      success: true,
+      data: weatherData,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch 5 day weather data.',
+    });
+  }
+  
+}
+
+
+
+
+export const getFieldsByFarmer = async (req, res) => {
+  try {
+    const { farmerId } = req.params; // Assume the farmer's ID is passed as a route parameter
+
+    const fields = await Field.aggregate([
+      {
+        $match: { user_id: new mongoose.Types.ObjectId(farmerId) }, // Use 'new' with mongoose.Types.ObjectId
+      },
+      {
+        $lookup: {
+          from: "farmers", // The collection name for farmers
+          localField: "user_id",
+          foreignField: "_id",
+          as: "farmerDetails",
+        },
+      },
+      {
+        $unwind: "$farmerDetails", // Flatten the farmer details array
+      },
+      {
+        $project: {
+          _id: 1,
+          field_id: 1,
+          field_name: 1,
+          crop: 1,
+          path: 1,
+          area: 1,
+          farmerDetails: {
+            name: 1, // Adjust the fields to include from the farmerDetails
+            contact: 1, // Example fields from the Farmer model
+          },
+        },
+      },
+    ]);
+
+    if (fields.length === 0) {
+      return res.status(404).json({ message: "No fields found for this farmer" });
+    }
+
+    res.status(200).json(fields);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
 export const extractPincodeFromAadhar = async (req, res) => {
   console.log(req.files); // Log the uploaded files for debugging
 
@@ -857,4 +996,5 @@ export const farmerSignup2 = async (req, res) => {
     console.error("Error during farmer signup:", error);
     return res.status(500).json({ success: false, message: "Signup failed due to server error" });
   }
-};
+  }
+  
