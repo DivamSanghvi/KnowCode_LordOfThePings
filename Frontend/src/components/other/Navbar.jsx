@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Dropdown from "./Dropdown";
 import { Menu, X, ChevronDown, Flame } from 'lucide-react';
+import { useSelector } from "react-redux";
 
 const navLinks = {
   "Teacher Vacancy": "/teacher-vacancy",
@@ -26,17 +27,20 @@ const navLinks = {
 };
 
 const Navbar = () => {
+  const navigate =useNavigate()
   const [activeSection, setActiveSection] = useState("Home");
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const moreButtonRef = useRef(null);
+  const user = useSelector((state) => state.user.user);
 
   const navItems = {
     PlantDoc: "/test",
     KhetDost : "/lifecycle",
     "Krushi-Store": "/product",
     CattleDoc:  "/cattle",
+    KhetMadat : "/gmaps",
     More: "/", // You can customize this route or leave it empty for a dropdown toggle
   };
 
@@ -154,14 +158,40 @@ const Navbar = () => {
         </div>
 
         {/* CTA Button (hidden on mobile) */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          style={{ background: colors.secondary, color: colors.background }}
-          className="hidden mdNav:block px-6 py-2 rounded-full text-sm font-medium transition-colors shadow-md"
-        >
-          Get In Touch
-        </motion.button>
+        {user ? (
+  <motion.button
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    style={{ background: colors.secondary, color: colors.background }}
+    className="hidden mdNav:block px-6 py-2 rounded-full text-sm font-medium transition-colors shadow-md"
+  >
+    Logout
+  </motion.button>
+) : (
+  <div className="flex px-2 justify-between space-x-4">
+
+  <motion.button
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    style={{ background: colors.secondary, color: colors.background }}
+    className="hidden mdNav:block px-6 py-2 rounded-full text-sm font-medium transition-colors shadow-md"
+    onClick={() => navigate("/login")}
+  >
+    Login
+  </motion.button>
+  <motion.button
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    style={{ background: colors.secondary, color: colors.background }}
+    className="hidden mdNav:block px-6 py-2 rounded-full text-sm font-medium transition-colors shadow-md"
+    onClick={() => navigate("/aadhar")}
+  >
+    Signup
+  </motion.button>
+</div>
+
+)}
+
       </nav>
 
       {/* Mobile Menu */}
