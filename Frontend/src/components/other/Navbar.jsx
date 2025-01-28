@@ -89,7 +89,7 @@ const Navbar = () => {
               style={{ color: colors.secondary }}
               className="text-xl font-semibold"
             >
-              Kurshi Karnti
+              Krushi Kranti
             </span>
           </Link>
         </div>
