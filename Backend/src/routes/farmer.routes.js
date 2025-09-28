@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { analyzeCattleDisease, analyzePlantDisease, askGemini, getCropLifeCycle, productLinks, signup, getLocation, getGraph, getFieldsByFarmer } from "../controllers/FarmerControllers/farmer.controller.js";
-import {  extractPincodeFromAadhar, farmerSignup, farmerSignup2 } from "../controllers/FarmerControllers/farmer.controller.js";
+import { analyzeCattleDisease, analyzePlantDisease, askGemini, getCropLifeCycle, productLinks, signup, getLocation, getGraph, getFieldsByFarmer, recommendSongs } from "../controllers/FarmerControllers/farmer.controller.js";
+import {  extractPincodeFromAadhar, farmerSignup, farmerSignup2 ,musictester} from "../controllers/FarmerControllers/farmer.controller.js";
 import { login } from "../controllers/FarmerControllers/farmer.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 const router = Router()
@@ -36,4 +36,11 @@ router.route("/aadharpincode").post(upload.fields([
     }
 ]),extractPincodeFromAadhar)
 router.route("/getFields/:farmerId").get(getFieldsByFarmer)
+router.route("/api/search/songs").get(musictester)
+router.route("/emotion").post(upload.fields([
+    {
+        name: "photo",
+        maxCount:1
+    }
+]),recommendSongs)
 export default router

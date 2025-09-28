@@ -19,7 +19,7 @@ const geminiConfig = {
   };
   
   const geminiModel = googleAI.getGenerativeModel({
-    model: "gemini-pro", // Model to use (can be 'gemini-pro' or other available models)
+    model: "gemini-1.5-flash", // Model to use (can be 'gemini-pro' or other available models)
     geminiConfig,
 });
 
@@ -605,6 +605,7 @@ export const getGraph = async (req, res) => {
 export const getFieldsByFarmer = async (req, res) => {
   try {
     const { farmerId } = req.params; // Assume the farmer's ID is passed as a route parameter
+    console.log("getFieldsByFarmer called with farmerId:", farmerId);
 
     const fields = await Field.aggregate([
       {
@@ -995,4 +996,150 @@ export const farmerSignup2 = async (req, res) => {
     return res.status(500).json({ success: false, message: "Signup failed due to server error" });
   }
   }
+
   
+
+export const musictester = async (req,res) => {
+  const query = req.query.query;
+  try{
+    const response = await axios.get(`https://jiosaavan-api-2-harsh-patel.vercel.app/api/search/songs?query=${encodeURIComponent(query)}&page=1&limit=10`)
+    res.json(response.data)
+  }catch(error){
+    console.log(error)
+    res.status(500).json({ error: 'Error fetching data' });
+  }
+}
+
+async function analyzeEmotionAndAge(imageLocalPath){ 
+
+
+
+  if (!imageLocalPath) {
+      return res.status(400).json({ message: 'No image file uploaded' });
+  }
+
+  try {
+      // Read the uploaded image file and convert it to base64 using fs.promises.readFile
+      const imageFile = await fs.readFile(imageLocalPath);  // Using fs.promises.readFile
+      const imageBase64 = imageFile.toString("base64");
+
+      // Prepare the prompt for the Gemini model
+      const promptConfig = [
+        {
+          text: `Analyze this image and detect the person's emotion and estimated age.
+          The response format should be : Emotion: Happy , Age: 25`
+        },
+        {
+          inlineData: {
+            mimeType: "image/jpeg",  // Assuming the image is in JPEG format
+            data: imageBase64, // Base64 encoded image data
+          },
+        },
+      ];
+      
+
+      // Send the image to Gemini for analysis
+      const result = await geminiModelVision.generateContent({
+          contents: [{ role: "user", parts: promptConfig }],
+      });
+
+      // Get the response from Gemini
+      const responseText = result.response.candidates[0].content.parts[0].text;
+        
+        // Assuming the response format is: "Emotion: Happy, Age: 25"
+        const match = responseText.match(/Emotion:\s*(\w+),\s*Age:\s*(\d+)/);
+        return match ? { emotion: match[1], age: parseInt(match[2]) } : null;
+  } catch (error) {
+      console.error('Error analyzing plant disease:', error);
+      return res.status(500).json({
+          success: false,
+          message: 'Failed to analyze the plant disease',
+      });
+  }
+};
+
+export const recommendSongs = async (req, res) => {
+  if (!req.files) {
+    return res.status(400).json({ error: "No image uploaded" });
+  }
+
+  try {
+    const imageLocalPath =
+      req.files?.photo && req.files.photo.length > 0
+        ? req.files.photo[0].path
+        : null;
+
+    const analysis = await analyzeEmotionAndAge(imageLocalPath);
+
+    console.log(analysis);
+    if (!analysis)
+      return res.status(500).json({ error: "Could not analyze emotion & age" });
+
+    const songRecommendations = await getSongRecommendation(
+      analysis.age,
+      analysis.emotion
+    );
+    if (!songRecommendations.length)
+      return res
+        .status(500)
+        .json({ error: "No song recommendations found" });
+
+    const songDetailsPromises = songRecommendations.map(fetchFullSongDetails);
+    const fullSongDetails = await Promise.all(songDetailsPromises);
+
+    console.log(fullSongDetails);
+
+    return res.json({
+      success: true,
+      emotion: analysis.emotion,
+      age: analysis.age,
+      songs: fullSongDetails,
+    });
+  } catch (error) {
+    console.error("Error in recommendSongs:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+async function getSongRecommendation(age,emotion){ 
+
+  try {
+      // Read the uploaded image file and convert it to base64 using fs.promises.readFile;
+      // Prepare the prompt for the Gemini model
+      const promptConfig = [
+        {
+          text: `Suggest 5 songs of Hindi and English for a person who is ${age} years old and is feeling ${emotion}. 
+                        Provide only song names, separated by commas.`
+        },
+      ];
+      
+
+      // Send the image to Gemini for analysis
+      const result = await geminiModelVision.generateContent({
+          contents: [{ role: "user", parts: promptConfig }],
+      });
+
+      // Get the response from Gemini
+      const responseText = result.response.candidates[0].content.parts[0].text;
+      return responseText.split(",").map(song => song.trim()); // Convert to array
+  } catch (error) {
+    console.error("Error in song recommendations:", error);
+    return [];
+  }
+};
+
+async function fetchFullSongDetails(songName) {
+  try {
+      const response = await axios.get(`https://jiosaavan-api-2-harsh-patel.vercel.app/api/search/songs?query=${encodeURIComponent(songName)}&page=1&limit=3`);
+      
+      if (response.data.success && response.data.data.results.length > 0) {
+          return response.data.data.results[0]; // Returning full song object
+      }
+      
+      return null;
+  } catch (error) {
+      console.error(`Error fetching details for song: ${songName}`, error);
+      return null;
+  }
+}

@@ -13,22 +13,22 @@ const EnhancedCropLifecycleTimeline = () => {
 
   const fetchLifecycleData = async () => {
     setLoading(true);
-    setError(null);
+    setError(false);
   
     // Get the user data from Redux state
     
-    console.log(user)
-    // Ensure user exists before making the API call
-    if (!user || !user.user || !user.user._id) {
-      console.error("User ID is missing.");
-      setError("User ID not found.");
-      setLoading(false);
-      return;
-    }
+    // console.log(user)
+    // // Ensure user exists before making the API call
+    // if (!user || !user.user || !user.user._id) {
+    //   console.error("User ID is missing.");
+    //   setError("User ID not found.");
+    //   setLoading(false);
+    //   return;
+    // }
   
     try {
       const response = await axios.post(
-        `http://localhost:8000/api/v1/user/croplifecycle/${user.user._id}`
+        `http://localhost:8000/api/v1/user/croplifecycle/67938155990ec09219d061a5`
       );
   
       console.log("Raw response data:", response.data);

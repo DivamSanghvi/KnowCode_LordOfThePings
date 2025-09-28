@@ -134,7 +134,7 @@ const MapComponent = () => {
   const [longitude, setLongitude] = useState(0);
   const [crop, setCrop] = useState("");
   const [field_name, setFieldName] = useState("");
-  const farmer_id = "678bca7eae164605c2d16c05";
+  const farmer_id = "67938155990ec09219d061a5";
 
 
   // let area=0,latitude=0,longitude=0;

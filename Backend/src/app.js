@@ -5,7 +5,7 @@ import farmerRouter from "../src/routes/farmer.routes.js"
 const app = express()
 
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: "*",
     credentials: true
 }))
 
